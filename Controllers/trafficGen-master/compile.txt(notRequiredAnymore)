@@ -1,0 +1,39 @@
+#!/bin/bash
+srcDir=`pwd`
+#### Remove links
+###########################################################################################################
+#cd $srcDir/server
+#g++ -std=gnu++11 -pthread -o server TCPEchoServer-Thread.c DieWithError.c HandleTCPClient.c AcceptTCPConnection.c CreateTCPServerSocket.c
+###################################################################
+cd $srcDir/trafficGeneratorServer/trafficGeneratorServer/trafficGeneratorServer
+#$CXX -std=gnu++11 -Wall  -g -pthread -o server main.cpp -I /usr/local/Cellar/boost/1.56.0/include
+make clean
+make
+if [ $? != 0 ]; then
+	echo "COMPILATION ERROR!!"
+else
+	echo "Created:"$(pwd)"/server"
+	#ln -sf server $srcDir/server.o
+fi
+OSXLIBS="-I /home/mininet/boost_1_61_0/Suraj_ScalableSDN/include -L/home/mininet/boost_1_61_0/Suraj_ScalableSDN/lib"
+###################################################################
+cd $srcDir/trafficGenerator/trafficGenerator
+make clean
+make
+if [ $? != 0 ]; then
+	echo "COMPILATION ERROR!!"
+else
+	echo "Created:"$(pwd)"/traffGen"
+	#ln -fs traffGen $srcDir/traffGen.o
+fi
+###################################################################
+cd $srcDir/trafficGenerator/trafficServer2
+make clean
+make
+#$CXX -pthread -g -Wall -std=gnu++11  main.cpp -lboost_program_options -lboost_system -o trafficServer2 $OSXLIBS
+if [ $? != 0 ]; then
+	echo "COMPILATION ERROR!!"
+else
+	echo "Created:"$(pwd)"/trafficServer2"
+	#ln -fs trafficServer2 $srcDir/trafficServer2.o
+fi

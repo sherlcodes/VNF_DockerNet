@@ -1,0 +1,13 @@
+root      6686  6581  0 00:10 pts/71   00:00:00 bash --norc -is mininet:h1
+root      6697  6581  0 00:10 pts/76   00:00:00 bash --norc -is mininet:h2
+root      6709  6581  0 00:10 pts/85   00:00:00 bash --norc -is mininet:h3
+root      6727  6581  0 00:10 pts/78   00:00:00 bash --norc -is mininet:h4
+root      6738  6581  0 00:10 pts/88   00:00:00 bash --norc -is mininet:h5
+root      6748  6581  0 00:10 pts/93   00:00:00 bash --norc -is mininet:h6
+root      6765  6581  0 00:10 pts/82   00:00:00 bash --norc -is mininet:h7
+root      6775  6581  0 00:10 pts/92   00:00:00 bash --norc -is mininet:h8
+root      6790  6581  0 00:10 pts/79   00:00:00 bash --norc -is mininet:h9
+root      6801  6581  0 00:10 pts/80   00:00:00 bash --norc -is mininet:h10
+root      6813  6581  0 00:10 pts/101  00:00:00 bash --norc -is mininet:h11
+root      6826  6581  0 00:10 pts/107  00:00:00 bash --norc -is mininet:h12
+mininet   7462  4487  0 00:11 pts/99   00:00:00 grep --color=auto mininet:h

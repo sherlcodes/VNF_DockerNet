@@ -1,0 +1,350 @@
+//
+//  main.cpp
+//  trafficGenerator
+//
+//  Created by Philip Wette on 27.06.13.
+//  Copyright (c) 2013 Uni Paderborn. All rights reserved.
+//
+
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <cstddef>
+#include <boost/tokenizer.hpp>
+#include <boost/ptr_container/ptr_list.hpp>
+#include "flow.h"
+#include "utils.h"
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <signal.h>
+#include <unistd.h>
+#include <boost/program_options.hpp>
+#include <boost/exception/diagnostic_information.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
+namespace po = boost::program_options;
+
+
+//static const bool debug=false;
+bool debug=true;
+
+static bool has_received_signal=false;
+static bool has_received_signal_go=false;
+/***********************************************************/
+std::ostream & getOut(const std::string outfile);
+void setFlag(int sig);
+void gogogo(int sig);
+/***********************************************************/
+std::ostream & getOut(const std::string outfile){
+    if (outfile != "-") {
+        std::cout << "Using file \"" << outfile << "\" as log output" << std::endl;
+        auto fout = new std::ofstream(outfile);
+        return *fout;
+    } else {
+        return std::cout;
+    }
+}
+/***********************************************************/
+void setFlag(int sig) {
+    has_received_signal = true;
+    if(debug)
+        std::cout<<"Received signal:"<<has_received_signal<<"\tSig:"<<sig <<std::endl;
+}
+/***********************************************************/
+void gogogo(int sig) {
+	has_received_signal_go = true;
+    if(debug)
+        std::cout<<"Received signal go:"<<has_received_signal_go<<"\tSig:"<<sig<< std::endl;
+}
+/***********************************************************/
+static void mainLoop(std::ostream & out, const std::vector<flow> flows, const trafficGenConfig & tgConf ){
+    out << "start scheduling flows..."  << std::endl;
+
+    typedef std::chrono::high_resolution_clock Clock;
+    typedef std::chrono::milliseconds milliseconds;
+
+    Clock::time_point t0 = Clock::now();
+
+    volatile int running_threads = 0;
+    pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    for (struct flow f:flows) {
+        Clock::time_point  t1 = Clock::now();
+        auto diff = std::chrono::duration_cast<milliseconds>(t1 - t0);
+        if(debug){
+	        std::cout << "flow should start at " << f.start << " diff " << diff.count() << "\n";
+	    }
+        if(diff.count() >= f.start) {
+            if(debug){
+	            std::cout << diff.count() << ">=" << f.start << "\n";
+            }
+            //we have to start this flow!
+        } else {
+            if(debug){
+            	std::cout << "sleeping for " << f.start - diff.count() << "\n";
+            }
+            //we should wait for the flow to begin...
+            std::this_thread::sleep_for(milliseconds(f.start - diff.count()));
+        }
+        //execute flow:
+        pthread_mutex_lock(&running_mutex);
+        running_threads++;
+        pthread_mutex_unlock(&running_mutex);
+
+        std::thread runner(sendData, f, diff.count(), std::ref(out), std::ref(tgConf), 3, &has_received_signal, &running_mutex, &running_threads);
+        runner.detach();
+    }
+    pthread_mutex_lock(&running_mutex);
+    int n = running_threads;
+    pthread_mutex_unlock(&running_mutex);
+    while(n > 0) {
+        pthread_mutex_lock(&running_mutex);
+        n = running_threads;
+        pthread_mutex_unlock(&running_mutex);
+        sleep(1);
+    }
+    out << "All threads finished" << std::endl;
+    out.flush();
+    
+}
+/***********************************************************/
+static void writeConfig (po::variables_map & vm, std::ostream & out) {
+    // Also: http://stackoverflow.com/questions/4703134/is-there-a-way-to-print-config-file-for-boost-program-options
+    using boost::property_tree::ptree;
+    ptree root;
+
+    for(auto i:vm) {
+        // Do not write the config option in the new config
+        if(i.first == "config")
+            continue;
+        if(i.second.value().type() == typeid(int))
+            root.put(i.first, i.second.as<int>());
+        else if(i.second.value().type() == typeid(std::string))
+            root.put(i.first, i.second.as<std::string>());
+        else if(i.second.value().type() == typeid(float))
+            root.put(i.first, i.second.as<float>());
+        else if(i.second.value().type() == typeid(bool))
+            root.put(i.first, i.second.as<bool>());
+        else if(i.second.value().type() == typeid(unsigned long))
+            root.put(i.first, i.second.as<unsigned long>());
+        else if(i.second.value().type() == typeid(unsigned int))
+            root.put(i.first, i.second.as<unsigned int>());
+        else if(i.second.value().type() == typeid(double))
+            root.put(i.first, i.second.as<double>());
+        else
+            std::cerr << "Unknown options type: " << i.second.value().type().name() << " " << i.first << std::endl;
+    }
+    write_ini( out, root );
+    out.flush();
+}
+/***********************************************************/
+boost::program_options::positional_options_description getPositionalArguments() {
+	boost::program_options::positional_options_description pd;
+    for(const char* arg: {"hostsPerRack", "ipBase", "hostId", "flowFile", "scaleFactorSize",
+				"scaleFactorTime", "participatory", "participatorySleep"}) {
+        pd.add (arg, 1);
+    }
+	return pd;
+}
+/***********************************************************/
+static void readConfigFile(const std::string & config_file, po::variables_map & vm, const po::options_description  & allcfgopts){
+    if ( config_file != "") {
+        std::cout << "Using configuration file " << config_file << std::endl;
+        std::ifstream ifs(config_file.c_str());
+        if (!ifs){
+            std::cerr << "can not open config file: " << config_file << "\n";
+            return;
+        }
+        try {
+            store(po::parse_config_file(ifs, allcfgopts), vm);
+        } catch (boost::exception & be) {
+            std::cerr << "Error parsing config file "<< config_file << std::endl;
+            std::cerr << boost::diagnostic_information(be) << std::endl;
+            return;
+        }
+    }
+}
+/***********************************************************/
+static std::function<void()> sighuphandler;
+/***********************************************************/
+void reReadConfig (po::options_description & allcmdopts, std::string  config_file, int argc, const char* argv[]){
+    po::variables_map vm;
+    readConfigFile(config_file, vm, allcmdopts);
+
+    po::store(po::command_line_parser(argc, argv).options(allcmdopts).positional(getPositionalArguments()).run(), vm);
+    po::notify(vm);
+
+    if (vm["showConfig"].as<bool>())
+        writeConfig(vm, std::cout);
+}
+/***********************************************************/
+int main (int argc, const char * argv[]){
+
+	(void) signal(SIGUSR1, setFlag);
+	(void) signal(SIGUSR2, gogogo);
+
+    int hostsPerRack;
+    std::string ipBase;
+    
+    int hostId;
+
+    std::string flowFile = "/home/mininet/Suraj_ScalableSDN/PARC-master/trafficGen-master/flows.csv";
+    
+    double scaleFactorTime = 1;
+
+    bool doLoop = false;
+
+    unsigned long cutofftime;
+
+    trafficGenConfig tgConf;
+    std::string config_file;
+
+    // All command line options will be added manually.
+    po::options_description cmdonly("Command line only");
+
+    cmdonly.add_options()
+    ("config,C", po::value<std::string>(&config_file)->default_value(""),"a configuration file");
+
+
+    // Declare the supported options.
+    po::options_description desc("Allowed options");
+    desc.add_options()
+    ("help", "produce help message")
+    ("hostsPerRack", po::value<int>(&hostsPerRack)->required(), "hosts per Rack")
+    ("ipBase", po::value<std::string>(&ipBase)->required(), "prefix of all IPs, e.g. 10.0")
+    ("hostId", po::value<int>(&hostId)->required(), "id of the own host (starts at 0?)")
+    ("flowFile", po::value<std::string>(&flowFile)->required(), "flowfile to read at startup")
+    ("scaleFactorSize", po::value<double>(&tgConf.scaleFactorSize)->required(), "Multiply each flow size by this factor")
+    ("scaleFactorTime", po::value<double>(&scaleFactorTime)->required(), "Timedillation factor, larger is slower")
+    ("participatory", po::value<int>(&tgConf.participatory)->default_value(0), "Announce flows larger than this [in bytes]")
+    ("participatorySleep", po::value<int>(&tgConf.participatorySleep)->default_value(0), "Wait some time (in ms) before announcing flows")
+	("falsePositives", po::value<double>(&tgConf.falsePositives)->default_value(0.0), "False Positives: Factor of mice falsely reported as elephants")
+    ("mptcp", po::value<bool>(&tgConf.enablemtcp)->default_value(false), "Enable MPTCP per socket option")
+    ("participartoyDiffPort", po::value<bool>(&tgConf.participatoryIsDifferentPort)->default_value(false), "Use different port to announce elepehants")
+    ("logFile", po::value<std::string>()->default_value("-"), "Log file")
+    ("cutOffTime", po::value<unsigned long>(&cutofftime)->default_value(0), "Don't play flows newer than this [ms]")
+    ("loop", po::value<bool>(&doLoop)->default_value(false), "Loop over the traffic file.")
+    ("showConfig", po::value<bool>()->default_value(true), "Print out config for diagnostic")
+    ("debug", po::value<bool>(&debug)->default_value(false), "Show debug")
+    ;
+    	
+	auto pd = getPositionalArguments();
+    po::options_description allcmdopts;
+    po::options_description allcfgopts;
+
+    allcmdopts.add(desc);
+    allcmdopts.add(cmdonly);
+
+    allcfgopts.add(desc);
+
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).options(allcmdopts).positional(pd).run(), vm);
+    po::notify(vm);
+
+
+    readConfigFile(config_file, vm, allcfgopts);
+
+	po::notify(vm);
+
+    sighuphandler = std::bind (reReadConfig, std::ref(allcmdopts), config_file, argc, argv);
+
+    signal(SIGHUP, [](int signum) { sighuphandler(); });
+    
+
+    std::ostream & out= getOut(vm["logFile"].as<std::string>());
+    if (vm["showConfig"].as<bool>())
+        writeConfig(vm, out);
+
+    //read flows from file - only hold the ones we really want to have:
+    std::ifstream infile;
+	infile.open (flowFile.c_str());
+    std::string line;
+    
+    std::vector<struct flow> flows;
+
+    int numFlows = 0;
+
+    if(!infile.good()) {
+         out << "Some errors has occured opening (CODE: 7)" << flowFile << std::endl;
+         return 7;
+    } 
+
+    if (debug)
+         out << "IP: " << getIp(hostId, hostsPerRack, ipBase) << std::endl;
+
+    while(!infile.eof()) {
+        getline(infile,line);
+        if (line.front() == '#')
+            continue;
+        
+        //check if this flow belongs to us:
+        size_t pos = line.find_first_of(",");
+        std::string sid = "";
+        if(pos!=std::string::npos) {
+            sid = line.substr(0, pos);
+        }
+        int id = -1;
+        if(sid != "")
+            id = stoi(sid);
+        if(debug){
+            struct flow temp;
+            temp.fromString(line, ipBase, hostsPerRack, scaleFactorTime);
+            out << "flow from ("<<id<<") "<< temp.fromIP << " to " << temp.toIP  << ((id == hostId)? " <Selected>": "<Ignored>") << std::endl;
+        }
+        if(id == hostId) {
+            //we keep this line. Append it to string.
+            //style= 1, 4, 40.06287, 11045.23 (from, to, time, bytes)
+            struct flow f;
+            f.fromString(line, ipBase, hostsPerRack, scaleFactorTime);
+            if (cutofftime > 0 && f.start > (cutofftime * scaleFactorTime) )
+                // Ignore the flow
+                if(debug){
+                    out << "<Expired flow>" << cutofftime << "<" << f.start << std::endl;
+                }
+                continue;
+            
+            if(f.bytes >= 1) {
+                flows.push_back(f);
+                if(debug)
+                    std::cout<< line <<std::endl;
+                numFlows++;
+            }
+            // out << ".";
+        }
+
+    }
+	infile.close();
+    // out  << std::endl;
+    
+    std::cout << "read " << numFlows << " flows. Using " << flows.size() << " flows (cutoff " << cutofftime << ")" << std::endl;
+    
+    //sort by time:
+    std::sort(flows.begin(), flows.end(), compareFlow);
+    int i=0;
+    for (auto & f: flows){
+        f.number=i++;
+    }
+	// if(debug) {
+	// 	out << "Flow start times: ";
+	// 	for (auto f:flows) {
+	// 		out << ", " << f.start;
+	// 	}
+	// 	out << std::endl;
+	// }
+    /*
+	//waiting for GO signal:
+	while(has_received_signal_go == false) {
+		if(debug)
+            out <<"Go to sleep for 1"<< std::endl;
+        sleep(1);
+	}
+	*/
+    do {
+    mainLoop(out, flows, tgConf);
+    } while (doLoop);
+	
+    return 0;
+}
+/***********************************************************/

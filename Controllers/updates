@@ -1,0 +1,32 @@
+1. Add protocols='OpenFlow13' in each switch 
+	s1 = net.addSwitch('s1', protocols='OpenFlow13')
+	mininet_script/two_region.py line no. 20
+	
+2. There are two types of connection in tflc. One is wsgi webserver running on 0.0.0.0:8080
+   and other is a socket connection on 0.0.0.0:9696. wsgi is for rest api and debugging purpose
+   local controller uses 0.0.0.0:9696 to communicate with global controller. So in cc_client/cfg.py
+   line number 5 CC_PORT = 9696 should be there.
+
+3. I have changed self.is_active line no. 35 and 39 in cc_client/cc_agent.py to self.is_live. I did 
+   not add a new variable is_acive as this is only used in this file and only these two places in cc_client folder.
+
+4. Since they have written the code for two remote controller running on different machines. So while mapping local controller's ip to local controller's id (to uniquely identify each local controller at global controller). We are using two local controller running on same ip so we should change this to accomodate both ip and port to uniquely identify each local controller.
+tflc/app_manager.py line no. 78
+lcip = local_ctrl.address[0] to 
+lcip = (local_ctrl.address[0],local_ctrl.address[1])
+
+5. Run the code as given in the PARC read me. For local controllers. --observe-links is very necessary. 
+
+6. In cc_client/layer_2_switch.py line no 275 
+out = out_dp.ofproto_parser.OFPPacketOut(in_port = in_dpid, buffer_id=buffer_id,datapath=out_dp, actions=actions, data=data)
+in_port and buffer_id should be specified. Initally it was not there. So we were getting error so no inter domain communication.
+I am not sure about in_port what we are supposed to put there.
+
+7. The schedule by which we are suppossed to run the code.
+	a.) first run the tflc controller. python tflc.py
+	b.) Run remote local controllers.
+	c.) Run mininet.
+
+Why this way? Because when hosts will be up. They will send an Event EventTFLCPHostConnected. after this event central controller maps each host with its mac and region in which it is there. if we first run mininet. Some hosts does not send this event(i do not know why not?). 
+
+8. pingall should work properly now.

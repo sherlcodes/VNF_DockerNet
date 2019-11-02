@@ -84,6 +84,7 @@ class OVSDocker( Docker, OVSSwitch ):
       bash
       service openvswitch-switch stop
       '''
+      OVSSwitch.sendCmd(self,'service', 'ssh', 'start')
       OVSSwitch.start(self,[])
       self.controllers=controllers
       connections=["tcp:%s:%d"%(c.exposedIP,c.port_bindings[c.port]) if(isinstance(c,DockerRyu)) else "tcp:%s:%d"%(c.ip,c.port) for c in controllers ]

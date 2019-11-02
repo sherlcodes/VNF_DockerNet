@@ -31,11 +31,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/* \
  && chmod +x /ENTRYPOINT.sh
 
-RUN apt-get update && apt-get install -y ssh
-RUN mkdir /var/run/sshd
-RUN echo 'root:1234' | chpasswd
-RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
+RUN apt-get update && apt-get install -y openssh-server
+RUN mkdir ~/.ssh
+RUN ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa
+RUN echo $(cat ~/.ssh/id_rsa.pub) >> ~/.ssh/authorized_keys
+RUN echo $(cat home/rishabh/.ssh/id_rsa.pub) >> ~/.ssh/authorized_keys
+RUN mkdir /var/run/sshd
+RUN echo 'root:Rishabh@515' | chpasswd
+RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN  echo "IdentityFile ~/.ssh/id_rsa" >> /etc/ssh/ssh_config
+RUN  echo "StrictHostKeyChecking=no" >> /etc/ssh/ssh_config
 # SSH login fix. Otherwise user is kicked off after login
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
@@ -43,8 +49,6 @@ ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
 EXPOSE 22
-CMD ["/usr/sbin/sshd", "-D"]
-
 ##################################################################################
 ## In host folder
 # DOCKER_CHANNEL=stable && DOCKER_VERSION=18.09.6 && dockerArch=x86_64

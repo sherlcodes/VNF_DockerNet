@@ -135,7 +135,7 @@ class ClosTree( Topo ):
         self.vnfNextIP += 1
         return ip
     ################################################################
-    def startNetwork(self,SwitchMappingDict=None,REST=False):
+    def startNetwork(self,SwitchMappingDict=None,REST=True):
         net=self.net
         net.build()
         #if self.c0 is not None:

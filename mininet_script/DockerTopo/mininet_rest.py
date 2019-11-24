@@ -6,8 +6,8 @@ from bottledaemon import daemon_run
 MininetRest adds a REST API to mininet.
 """
 protocols='OpenFlow13'
-IP="172.16.117.50"
-PORT="28081"
+IP="10.0.2.15"
+PORT="8081"
 ##########################################################################################
 class MininetRest(Bottle):
     ############################################################
@@ -63,15 +63,15 @@ class MininetRest(Bottle):
             })
     ############################################################
     def get_intfs(self):
-        '''http://172.16.117.50:8081/interfaces'''
+        '''http://10.0.2.15:8081/interfaces'''
         return({'nodes': [self.get_node(n) for n in self.net]})
     ############################################################
     def get_nodes(self):
-        '''http://172.16.117.50:8081/nodes'''
+        '''http://10.0.2.15:8081/nodes'''
         return({'nodes': [n for n in self.net]})
     ############################################################
     def get_node(self, node_name):
-        '''http://172.16.117.50:8081/nodes/h1'''
+        '''http://10.0.2.15:8081/nodes/h1'''
         node = self.net[node_name]
         return({'name':node.name,'dpid': node.dpid if("Switch" in str(type(node))) else False,'pid':node.pid,'intfs': [[i.name,i.mac] for i in node.intfList()], 'params': node.params})
     ############################################################
@@ -83,27 +83,27 @@ class MininetRest(Bottle):
         return(node.params)
     ############################################################
     def cmdPrint(self, node_name, cmd):
-        '''http://172.16.117.50:8081/nodes/h1/cmdPrint/name="h1"'''
+        '''http://10.0.2.15:8081/nodes/h1/cmdPrint/name="h1"'''
         node = self.net[node_name]
         out=node.cmdPrint(cmd)
         return({'cmd': cmd,'output': out})
     ############################################################
     def mnexec(self, node_name, cmd):
-        '''http://172.16.117.50:8081/nodes/s1/mnexec/ifconfig s1-eth0'''
+        '''http://10.0.2.15:8081/nodes/s1/mnexec/ifconfig s1-eth0'''
         node = self.net[node_name]
         CMD=cmd.split(" ")
         out, err, exitcode=node.pexec(cmd)
         return({'cmd':' '.join(CMD),'output': out,'stderr':err,'exitcode':exitcode})
     ############################################################
     def get_intf(self, node_name, intf_name):
-        '''http://172.16.117.50:8081/nodes/s1'''
+        '''http://10.0.2.15:8081/nodes/s1'''
         node = self.net[node_name]
         intf = node.nameToIntf[intf_name]
         return({'name': intf.name, 'status': 'up' if intf.name in intf.cmd('ifconfig') else 'down',
                 "params": intf.params})
     ############################################################
     def post_intf(self, node_name, intf_name, params):
-        '''http://172.16.117.50:8081/nodes/s1/s1-eth1'''
+        '''http://10.0.2.15:8081/nodes/s1/s1-eth1'''
         node = self.net[node_name]
         intf = node.nameToIntf[intf_name]
         if(len(params)>1):
@@ -120,35 +120,35 @@ class MininetRest(Bottle):
                 "params": intf.params})
     ############################################################
     def get_hosts(self):
-        '''http://172.16.117.50:8081/hosts'''
+        '''http://10.0.2.15:8081/hosts'''
         return({'hosts': [h.name for h in self.net.hosts]})
     ############################################################
     def get_host_info(self,host_name):
-        '''http://172.16.117.50:8081/hosts/h1'''
+        '''http://10.0.2.15:8081/hosts/h1'''
         node=self.net[host_name]
         return({'name':node.name,'intfs': {i.name:i.mac for i in node.intfList()}})
     ############################################################
     def get_ctlrs(self):
-        '''http://172.16.117.50:8081/controllers'''
+        '''http://10.0.2.15:8081/controllers'''
         return({'controllers': [ctlr.name for ctlr in self.net.controllers]})
     ############################################################
     def get_switches(self):
-        '''http://172.16.117.50:8081/switches'''
+        '''http://10.0.2.15:8081/switches'''
         return({'switches': {sw.name:{"ctlr":sw.vsctl("get-controller %s"%(sw.name)),'connected':sw.vsctl("get-controller %s"%(sw.name))} for sw in self.net.switches}})
     ############################################################
     def get_links(self):
-        '''http://172.16.117.50:8081/links'''
+        '''http://10.0.2.15:8081/links'''
         return({'links': [dict(name=l.intf1.node.name + '-' + l.intf2.node.name,
                                node1=l.intf1.node.name, node2=l.intf2.node.name,
                                intf1=l.intf1.name, intf2=l.intf2.name) for l in self.net.links]})
     ############################################################
     def get_ctlrs_wsport(self):
         ''' get json ws port from net object'''
-        '''http://172.16.117.50:8081/ctlrport'''
+        '''http://10.0.2.15:8081/ctlrport'''
         return({c.name:c.wsport for c in self.net.controllers if "CustomL1" in str(type(c))})
     ############################################################
     def ovsrules(self, switch_name):
-        '''http://172.16.117.50:8081/switches/s1/rules'''
+        '''http://10.0.2.15:8081/switches/s1/rules'''
         if(switch_name in [s.name for s in self.net.switches]):
             pass
         else:
@@ -165,7 +165,7 @@ class MininetRest(Bottle):
         return({'ovsrules': rulesdict})
     ############################################################
     def do_cmd(self, cmd_name):
-        '''http://172.16.117.50:8081/cmd/ifconfig'''
+        '''http://10.0.2.15:8081/cmd/ifconfig'''
         CMD=cmd_name.split(" ")
         out = subprocess.Popen(CMD,
             stdout=subprocess.PIPE, 
@@ -204,7 +204,7 @@ class MininetRest(Bottle):
         return(output)'''
     ############################################################
     def get_neighbors(self):
-        '''http://172.16.117.50:8081/neighbor'''
+        '''http://10.0.2.15:8081/neighbor'''
         dataPlaneLinks=[l for i,l in enumerate(self.net.links) if not("Host" in "%s-%s"%(str(type(l.intf1.node)),str(type(l.intf2.node))))]
         dataPlane={i:[l.intf1.node.name,l.intf2.node.name] for i,l in enumerate(dataPlaneLinks) if(l.intf1.isUp() and l.intf2.isUp())}
         return(dataPlane)

@@ -42,7 +42,7 @@ if __name__ == '__main__':
     clos=ClosTree(racks=2,hostsPerRack=2,ctlrNo=0)
     #clos.addVNF(name="Blank",parentNode=clos.net.getNodeByName("spine1"),dimage="ubuntu:trusty")
     #net=clos.startNetwork(SwitchMappingDict=SwitchMappingDict)
-    net=clos.startNetwork(REST=False)
+    net=clos.startNetwork(REST=True)
 
     # Can be dropped later
     H={n.name:{"pid":n.pid} for n in net.hosts}

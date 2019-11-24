@@ -66,7 +66,7 @@ if __name__ == '__main__':
     while(repeat):
         info("*** Running Ipython\n")
         import IPython
-        IPython.embed()
+        #IPython.embed()
         ###############################################################
         info("*** Running CLI\n")
         # net.getNodeByName("h1").cmdPrint("")

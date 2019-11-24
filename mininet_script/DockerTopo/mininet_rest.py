@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from bottle import Bottle, request
-import time, subprocess, json
+import time, subprocess, json, shlex
 from bottledaemon import daemon_run
 """
 MininetRest adds a REST API to mininet.
@@ -21,6 +21,7 @@ class MininetRest(Bottle):
     def __init__(self, net):
         super(MininetRest, self).__init__()
         self.net = net
+	self.route('/migrate/<src_OVS>/<tar_OVS>/<VNF>', method='GET', callback=self.migrate_VNF)
         self.route('/index', callback=self.show_index)
         self.route('/nodes', callback=self.get_nodes)
         self.route('/nodes/<node_name>', callback=self.get_node)
@@ -209,4 +210,13 @@ class MininetRest(Bottle):
         dataPlane={i:[l.intf1.node.name,l.intf2.node.name] for i,l in enumerate(dataPlaneLinks) if(l.intf1.isUp() and l.intf2.isUp())}
         return(dataPlane)
     ############################################################
+    def migrate_VNF(self,src_OVS,tar_OVS,VNF):
+	switch1 = self.net[src_OVS]
+	switch2 = self.net[tar_OVS]
+	node = self.net[VNF]
+	switch1_name="mn."+switch1.name
+	switch2_name="mn."+switch2.name
+	node_name="mn."+node.name
+	result=subprocess.call(["./mn.sh",switch1_name,switch2_name,node_name])
+	return({'output':result}) 
 ##########################################################################################

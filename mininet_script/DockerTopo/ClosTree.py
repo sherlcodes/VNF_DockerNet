@@ -188,7 +188,8 @@ class ClosTree( Topo ):
                         host.setARP(dest.IP(intf=dst_intf), dest.MAC(intf=dst_intf))
         if(REST):
             info("*** Super controller WSGI help http://0.0.0.0:8081/index\n")
-            self.monitor=thread.start_new_thread(self.startMininetRest,())
+            #self.monitor=thread.start_new_thread(self.startMininetRest,())
+	    self.startMininetRest()
         return(net)
     ################################################################
     def startMininetRest(self):

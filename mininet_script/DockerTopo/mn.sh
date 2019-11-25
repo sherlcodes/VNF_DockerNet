@@ -5,7 +5,7 @@ from_switch=$1
 to_switch=$2
 container_name=$3
 
-image_name=${container_name//./_}
+image_name=$container_name
 
 sudo docker exec -i $from_switch bash <<EOF
 echo "$ip"
@@ -22,6 +22,6 @@ echo "\nContainer $1 off and $2 is now start\n"
 
 sudo docker exec -i $to_switch bash <<EOF
 gunzip -c ${image_name}.tar.gz | docker load
-docker run -it -P -d --name=${container_name} ${image_name}:latest /bin/bash
+
 exit
 EOF

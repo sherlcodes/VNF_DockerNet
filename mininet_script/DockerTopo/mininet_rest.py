@@ -1,7 +1,11 @@
 #!/usr/bin/python
 from bottle import Bottle, request
-import time, subprocess, json, shlex
+import time, subprocess, json
 from bottledaemon import daemon_run
+from mininet.node import Docker
+from mininet.link import TCLink
+from paste.util.multidict import MultiDict
+from DockerNodes import VNF
 """
 MininetRest adds a REST API to mininet.
 """
@@ -217,6 +221,17 @@ class MininetRest(Bottle):
 	switch1_name="mn."+switch1.name
 	switch2_name="mn."+switch2.name
 	node_name="mn."+node.name
+	vnfImage=node_name+":latest"	
 	result=subprocess.call(["./mn.sh",switch1_name,switch2_name,node_name])
+	net=self.net
+        v=self.net.addDocker( node.name,dimage=vnfImage)
+        l1=net.addLink(switch2.name,v,cls=TCLink)
+        l2=net.addLink(switch2.name,v,cls=TCLink)
+	self.VNFs=MultiDict()	
+	self.VNFs.add(switch2.name,v)
+	'''
+	v=VNF.__init__(node.name,dimage=vnfImage)
+	v.addParent(swtich2.name)'''	
+	self.net[VNF]=v
 	return({'output':result}) 
 ##########################################################################################

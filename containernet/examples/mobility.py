@@ -58,7 +58,7 @@ class MobilitySwitch( OVSSwitch ):
 
     def validatePort( self, intf ):
         "Validate intf's OF port number"
-        ofport = int( self.cmd( 'ovs-vsctl get Interface', intf,
+        ofport = ( self.cmd( 'ovs-vsctl get Interface', intf,
                                 'ofport' ) )
         if ofport != self.ports[ intf ]:
             warn( 'WARNING: ofport for', intf, 'is actually', ofport,
@@ -98,7 +98,7 @@ def printConnections( switches ):
 
 def moveHost( host, oldSwitch, newSwitch, newPort=None ):
     "Move a host from old switch to new switch"
-    hintf, sintf = host.connectionsTo( oldSwitch )[ 0 ]
+    hintf, sintf = host.connectionsTo( oldSwitch )[0]
     oldSwitch.moveIntf( sintf, newSwitch, port=newPort )
     return hintf, sintf
 

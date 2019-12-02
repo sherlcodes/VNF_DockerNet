@@ -4,8 +4,9 @@ import time, subprocess, json
 from bottledaemon import daemon_run
 from mininet.node import Docker
 from mininet.link import TCLink
+from mininet.examples.mobility import *  
 from paste.util.multidict import MultiDict
-from DockerNodes import VNF
+#from DockerNodes import VNF
 """
 MininetRest adds a REST API to mininet.
 """
@@ -218,20 +219,27 @@ class MininetRest(Bottle):
 	switch1 = self.net[src_OVS]
 	switch2 = self.net[tar_OVS]
 	node = self.net[VNF]
-	switch1_name="mn."+switch1.name
+	moveHost(node,switch1,switch2)
+	'''switch1_name="mn."+switch1.name
 	switch2_name="mn."+switch2.name
 	node_name="mn."+node.name
 	vnfImage=node_name+":latest"	
 	result=subprocess.call(["./mn.sh",switch1_name,switch2_name,node_name])
 	net=self.net
-        v=self.net.addDocker( node.name,dimage=vnfImage)
+	node_name=node.name
+	self.net.removeDocker(node)
+        v=self.net.addDocker( node_name,dimage=vnfImage)
         l1=net.addLink(switch2.name,v,cls=TCLink)
         l2=net.addLink(switch2.name,v,cls=TCLink)
-	self.VNFs=MultiDict()	
-	self.VNFs.add(switch2.name,v)
-	'''
+	#self.VNFs=MultiDict()	
+	#self.VNFs.add(switch2.name,v)
+	
 	v=VNF.__init__(node.name,dimage=vnfImage)
-	v.addParent(swtich2.name)'''	
-	self.net[VNF]=v
-	return({'output':result}) 
+	v.addParent(swtich2.name)	
+	
+
+	#print(type(node))
+	print(type(v))
+	print(type(self.net))''' 	
+	return(self) 
 ##########################################################################################

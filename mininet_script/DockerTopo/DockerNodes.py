@@ -1,4 +1,5 @@
 from mininet.node import *
+from mininet.examples.mobility import *
 from mininet.link import TCLink
 from os import environ
 from mininet.log import setLogLevel, info
@@ -69,7 +70,7 @@ class DockerRyu( Docker, RemoteController ):
         Docker.stop(self)
         RemoteController.stop(self)
 ###########################################################################################################
-class OVSDocker( Docker, OVSSwitch ):
+class OVSDocker( Docker, MobilitySwitch ):
     """Open vSwitch Ethernet bridge with Spanning Tree Protocol
        rooted at the first bridge that is created"""
     def __init__(self,name,dimage="switch-docker",**kwargs):

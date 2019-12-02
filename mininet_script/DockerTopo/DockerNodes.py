@@ -70,7 +70,7 @@ class DockerRyu( Docker, RemoteController ):
         Docker.stop(self)
         RemoteController.stop(self)
 ###########################################################################################################
-class OVSDocker( Docker, MobilitySwitch ):
+class OVSDocker( Docker, OVSSwitch ):
     """Open vSwitch Ethernet bridge with Spanning Tree Protocol
        rooted at the first bridge that is created"""
     def __init__(self,name,dimage="switch-docker",**kwargs):

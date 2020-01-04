@@ -48,20 +48,21 @@ def getDictFrom(filename):
 class L3Switch13(simple_switch_13.SimpleSwitch13):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     _CONTEXTS = {
-        'switches': sw.Switches
+        'switches': sw.Switches,
+	'wsgi': WSGIApplication
     }
-    '''
+    
     _CONTEXTS = {
         #'topology': topology.TopologyController
-        'dpset': topology.DPSet
+        'dpset': dpset.DPSet
         #'topo': WSGIApplication
     }
-    '''
+ 
     #########################################
     def __init__(self, *args, **kwargs):
         self.net=ryuNet()
         super(L3Switch13, self).__init__(*args, **kwargs)
-        #self.dpset = kwargs['dpset']
+        self.dpset = kwargs['dpset']
         #print(self.dpset)
         #topo = kwargs['topo']
         #topo.register(topology.TopologyController, {'topology_api_app': self})
@@ -92,6 +93,11 @@ class L3Switch13(simple_switch_13.SimpleSwitch13):
             #print("*** Link change event:",ev,"links:",api.get_all_link(self))
         #self.net.update(switches=api.get_all_switch(self),links=api.get_all_link(self),hosts=api.get_all_host(self))
         #del(self.net)
+	if isinstance(ev,event.EventPortModify):
+                port = ev.port
+                if port.is_down():
+			self.del_flow(self.switches.dps[port.dpid],port.port_no)
+                        self.logger.info("Delete the flow entries when the port %d is down"%(port.port_no))
         self.net= ryuNet(switches=api.get_all_switch(self),links=api.get_all_link(self),hosts=api.get_all_host(self))
     #########################################
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)

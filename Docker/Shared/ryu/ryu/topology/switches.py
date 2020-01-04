@@ -186,7 +186,7 @@ class Host(object):
 
     def __eq__(self, host):
         if(isinstance(host,type(self))):
-            return self.mac == host.mac and self.port == host.port
+            return self.port == host.port
         else:
             return(False)
 

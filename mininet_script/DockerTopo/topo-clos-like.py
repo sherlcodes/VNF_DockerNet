@@ -39,7 +39,7 @@ if __name__ == '__main__':
             SwitchMappingDict = json.load(f)
     else:
         SwitchMappingDict=None
-    clos=ClosTree(racks=2,hostsPerRack=2,ctlrNo=0)
+    clos=ClosTree(racks=4,hostsPerRack=2,ctlrNo=0)
     #clos.addVNF(name="Blank",parentNode=clos.net.getNodeByName("spine1"),dimage="ubuntu:trusty")
     #net=clos.startNetwork(SwitchMappingDict=SwitchMappingDict)
     net=clos.startNetwork(REST=True)

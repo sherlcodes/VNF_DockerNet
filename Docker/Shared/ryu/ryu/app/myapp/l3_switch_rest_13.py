@@ -14,8 +14,8 @@
 # limitations under the License.
 
 import json
-
-#from ryu.app import simple_switch_13
+from ryu.controller import dpset
+from ryu.app import ofctl_rest
 from ryu.app.myapp import l3_switch_13
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER
@@ -39,13 +39,17 @@ simple_switch_instance_name = 'simple_switch_api_app'
 url = '/l3switch/{dpid}'
 
 ############################################################################
-class SimpleSwitchRest13(l3_switch_13.L3Switch13):
-    _CONTEXTS = {'wsgi': WSGIApplication}
+class SimpleSwitchRest13(l3_switch_13.L3Switch13, ofctl_rest.RestStatsApi):
+    _CONTEXTS = {'wsgi': WSGIApplication,
+		 'dpset': dpset.DPSet
+	}
+ 
     #########################################
     def __init__(self, *args, **kwargs):
         super(SimpleSwitchRest13, self).__init__(*args, **kwargs)
         self.switches = {}
         wsgi = kwargs['wsgi']
+	self.dpset = kwargs['dpset']
         wsgi.register(SimpleSwitchController,
                       {simple_switch_instance_name: self})
 ############################################################################

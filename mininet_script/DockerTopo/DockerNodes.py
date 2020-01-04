@@ -1,5 +1,4 @@
 from mininet.node import *
-from mininet.examples.mobility import *
 from mininet.link import TCLink
 from os import environ
 from mininet.log import setLogLevel, info

@@ -14,6 +14,10 @@ MAINTAINER Subhrendu Chattopadhyay <subhrendu@iitg.ac.in>
 COPY ENTRYPOINT.sh /
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    sudo \
+    sysstat \
+    bmon \
+    sshpass \
     rsync \
     curl \
     ethtool \
@@ -36,7 +40,8 @@ RUN apt-get update && apt-get install -y openssh-server
 RUN mkdir ~/.ssh
 RUN ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa
 RUN echo $(cat ~/.ssh/id_rsa.pub) >> ~/.ssh/authorized_keys
-RUN echo $(cat home/rishabh/.ssh/id_rsa.pub) >> ~/.ssh/authorized_keys
+RUN echo ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvdRWXkj90+6d4m5cF+R49CloRndaCwwpJvsJgn/fnn1eWhxBTlcMgaOou2J5H2vPJdKFty6/J5gKFDBSNCkZ4kfuaTyJw41WxsBP0BMbM+ydlCOieYp8iWfKO3h1nfYyv7NZWj0jQkCNmRcz+awdx1ABqLLMt84H4WC64+4ImZkYHonIP22h41nPusM2oXjObFUpbDuJreAZcf+szk0mEkCqUsCn4fNu9clumfeiwJEdEoAPprdicQcMI8foq5QQodcCINcTYBpWqaBF/C6siQH8Hd/jSW9QyDOUYOCi6++nRi/TiZXsXi8WGvbNmb4Oq1yAIb19F6hbCvgHQasK1 rishabh@rishabh-VirtualBox >> ~/.ssh/authorized_keys
+#RUN echo $(cat ~/.ssh/id_rsa.pub) >> home/rishabh/.ssh/authorized_keys
 RUN mkdir /var/run/sshd
 RUN echo 'root:Rishabh@515' | chpasswd
 RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config

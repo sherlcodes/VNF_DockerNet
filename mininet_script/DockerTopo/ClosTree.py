@@ -42,7 +42,7 @@ def getVal(d,key):
     return(d[key] if key in d.keys() else None)
 ##########################################################################################
 class ClosTree( Topo ):
-    def __init__( self,racks=6,hostsPerRack=20,ctlrNo = 1,ipBase='11.0.0.1/24',vnfIpBase='11.1.0.0/24'):
+    def __init__( self,racks=6,hostsPerRack=2,ctlrNo = 1,ipBase='11.0.0.1/24',vnfIpBase='11.1.0.0/24'):
         # Initialize topology
         self.vnfIpBase=vnfIpBase
         self.vnfNextIP=1

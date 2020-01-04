@@ -21,14 +21,21 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ether_types
+from ryu.controller import dpset
 
 
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+    _CONTEXTS = {
+        #'topology': topology.TopologyController
+        'dpset': dpset.DPSet
+        #'topo': WSGIApplication
+    }
 
     def __init__(self, *args, **kwargs):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
+	self.dpset = kwargs['dpset']
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -62,6 +69,14 @@ class SimpleSwitch13(app_manager.RyuApp):
             mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
                                     match=match, instructions=inst, idle_timeout=idle_timeout)
         #self.logger.debug({"MSG":"data_flow","dpid":datapath.id,"priority":priority,"match":match.to_jsondict(),"instructions":[A.to_jsondict() for A in inst]})
+        datapath.send_msg(mod)
+	
+    def del_flow(self, datapath, match):
+        ofproto = datapath.ofproto
+        mod = datapath.ofproto_parser.OFPFlowMod(datapath=datapath,
+match=match, cookie=0,
+            command=ofproto.OFPFC_DELETE, idle_timeout=0, hard_timeout=0,
+            priority=priority)
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)

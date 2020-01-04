@@ -6,7 +6,7 @@ from mininet.node import Docker
 from mininet.link import TCLink
 from mininet.examples.mobility import *  
 from paste.util.multidict import MultiDict
-#from DockerNodes import VNF
+from DockerNodes import VNF
 """
 MininetRest adds a REST API to mininet.
 """
@@ -26,7 +26,7 @@ class MininetRest(Bottle):
     def __init__(self, net):
         super(MininetRest, self).__init__()
         self.net = net
-	self.route('/migrate/<src_OVS>/<tar_OVS>/<VNF>', method='GET', callback=self.migrate_VNF)
+	self.route('/migrate/<src_OVS>/<tar_OVS>/<VNF_node>', method='GET', callback=self.migrate_VNF)
         self.route('/index', callback=self.show_index)
         self.route('/nodes', callback=self.get_nodes)
         self.route('/nodes/<node_name>', callback=self.get_node)
@@ -215,10 +215,10 @@ class MininetRest(Bottle):
         dataPlane={i:[l.intf1.node.name,l.intf2.node.name] for i,l in enumerate(dataPlaneLinks) if(l.intf1.isUp() and l.intf2.isUp())}
         return(dataPlane)
     ############################################################
-    def migrate_VNF(self,src_OVS,tar_OVS,VNF):
+    def migrate_VNF(self,src_OVS,tar_OVS,VNF_node):
 	switch1 = self.net[src_OVS]
 	switch2 = self.net[tar_OVS]
-	node = self.net[VNF]
+	node = self.net[VNF_node]
 	switch1_name="mn."+switch1.name
 	switch2_name="mn."+switch2.name
 	node_name="mn."+node.name
@@ -226,16 +226,39 @@ class MininetRest(Bottle):
 	result=subprocess.call(["./mn.sh",switch1_name,switch2_name,node_name])
 	net=self.net
 	node_name=node.name
-	#self.net.removeDocker(node)
+	ip=[]
+	mac=[]
+	for i in node.intfList():
+		ip.append(i.ip)
+	for i in node.intfList():
+		mac.append(i.mac)
+	self.net.removeLink(None,switch1,node)		
+	self.net.removeLink(None,switch1,node)			
+	self.net.removeDocker(node)
         v=self.net.addDocker( node_name,dimage=vnfImage)
-        l1=self.net.addLink(switch2.name,v,cls=TCLink)
-        l2=self.net.addLink(switch2.name,v,cls=TCLink)
-	net[node]=v
-	'''
+	#v.intf[0].ip=node.intf[0].ip
+	#v.intf[1].ip=node.intf[1].ip		
+        #v=VNF(node.name,dimage=vnfImage)
+	#v.addParent(swtich2.name)	
+	l1=net.addLink(switch2,v,cls=TCLink)
+        l2=net.addLink(switch2,v,cls=TCLink)
+	#self.VNFs=MultiDict()	
+	#self.VNFs.add(switch2.name,v)
+	k=0
+	for i in v.intfList():
+		v.setIP(ip[k],intf=i)
+		k=k+1
+	for host in self.net.hosts:
+            for dest in self.net.hosts:
+                if host.name != dest.name:
+                    for dst_intf in dest.intfs.values():
+                        host.setARP(dest.IP(intf=dst_intf), dest.MAC(intf=dst_intf))
+	#v=VNF.__init__(node.name,dimage=vnfImage)
+	#v.addParent(swtich2.name)	
 	
 
 	#print(type(node))
-	print(type(v))
-	print(type(self.net))''' 	
-	return({'output':result}) 
+	#print(type(v))
+	#print(type(self.net)) 	
+	return({'intfs': [[i.name,i.mac,i.ip] for i in v.intfList()]}) 
 ##########################################################################################

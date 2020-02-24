@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from bottle import Bottle, request
-import time, subprocess, json
+import time, subprocess, json, os
 from bottledaemon import daemon_run
 from mininet.node import Docker
 from mininet.link import TCLink
@@ -40,6 +40,7 @@ class MininetRest(Bottle):
         self.route('/hosts', method='GET', callback=self.get_hosts)
         self.route('/hosts/post/<host_name>', method='GET', callback=self.get_host_info)
         self.route('/switches', method='GET', callback=self.get_switches)
+	self.route('/switches_ip', method='GET', callback=self.get_switches_ip)
         self.route('/links', method='GET', callback=self.get_links)
         self.route('/controllers', method='GET', callback=self.get_ctlrs)
         self.route('/ctlrport', method='GET', callback=self.get_ctlrs_wsport)
@@ -140,7 +141,20 @@ class MininetRest(Bottle):
     ############################################################
     def get_switches(self):
         '''http://10.0.2.15:8081/switches'''
+        for sw in self.net.switches:
+        	print(sw.ip) 
         return({'switches': {sw.name:{"ctlr":sw.vsctl("get-controller %s"%(sw.name)),'connected':sw.vsctl("get-controller %s"%(sw.name))} for sw in self.net.switches}})
+    ############################################################
+    def get_switches_ip(self):
+        '''http://10.0.2.15:8081/switches_ip'''
+        ip=[]
+        for sw in self.net.switches:
+        	name = 'mn.'+sw.name
+		task = subprocess.Popen(["docker", "inspect", "-f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'",name], stdout = subprocess.PIPE)
+		result=task.communicate()[0]
+		result = str(result[0:13])+" "+str(name)+" \n"
+		ip.append(result)
+        return({i for i in ip})
     ############################################################
     def get_links(self):
         '''http://10.0.2.15:8081/links'''

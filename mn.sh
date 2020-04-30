@@ -14,6 +14,7 @@ docker container stop $container_name
 docker save $image_name | gzip > ${image_name}.tar.gz
 rsync -r -e ssh /root/${image_name}.tar.gz root@$ip:/root/
 rm ${image_name}.tar.gz
+docker rm ${image_name}
 exit
 EOF
 
@@ -21,6 +22,7 @@ echo "\nContainer $1 off and $2 is now start\n"
 
 sudo docker exec -i $to_switch bash <<EOF
 gunzip -c ${image_name}.tar.gz | docker load
-docker load|docker run -it -P -d --name=${container_name} -p $4:1688 ${image_name}:latest /bin/bash
+rm ${image_name}.tar.gz
+docker run -it -P -d --name=${container_name} -p $4:1688 ${image_name}:latest /bin/bash
 exit
 EOF

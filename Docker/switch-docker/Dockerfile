@@ -15,6 +15,7 @@ COPY ENTRYPOINT.sh /
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
+    stress-ng \
     sysstat \
     bmon \
     sshpass \

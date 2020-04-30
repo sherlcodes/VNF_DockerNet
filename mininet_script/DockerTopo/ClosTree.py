@@ -74,7 +74,7 @@ class ClosTree( Topo ):
         info("*** Add spine switches\n")
         for spine in xrange(1, (spineSwitchNum+1)):
             s = net.addSwitch("s.spine"+str(spine), cls=OVSDocker,protocols=protocols)
-	    s.updateMemoryLimit(500000000)
+	    #s.updateMemoryLimit(500000000)
     	    s.updateCpuLimit(25000,100000,256)
             spineSwitches.append(s)
 
